@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MoodTune — Smart Song Recommender</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      transition: background 0.5s ease;
+      color: #fff;
+    }
+
+    .app {
+      background: rgba(255,255,255,0.12);
+      backdrop-filter: blur(18px);
+      border-radius: 22px;
+      width: 100%;
+      max-width: 460px;
+      padding: 28px;
+      box-shadow: 0 25px 45px rgba(0,0,0,0.3);
+    }
+
+    h1 { text-align: center; font-size: 1.9rem; margin-bottom: 6px; }
+    .subtitle { text-align: center; font-size: 0.9rem; opacity: 0.85; margin-bottom: 22px; }
+
+    .moods {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+
+    .mood-btn {
+      background: rgba(255,255,255,0.18);
+      border: none;
+      border-radius: 16px;
+      padding: 18px 10px;
+      color: #fff;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: transform 0.15s ease, background 0.15s ease;
+    }
+
+    .mood-btn:hover {
+      transform: translateY(-2px);
+      background: rgba(255,255,255,0.3);
+    }
+
+    .slider-box {
+      margin-bottom: 22px;
+    }
+
+    .slider-box label {
+      font-size: 0.85rem;
+      opacity: 0.85;
+    }
+
+    input[type=range] {
+      width: 100%;
+      margin-top: 8px;
+    }
+
+    .result {
+      background: rgba(0,0,0,0.3);
+      border-radius: 16px;
+      padding: 18px;
+      text-align: center;
+      display: none;
+    }
+
+    .song { font-size: 1.15rem; font-weight: 700; margin-bottom: 4px; }
+    .artist { font-size: 0.9rem; opacity: 0.85; margin-bottom: 14px; }
+
+    .links a {
+      display: inline-block;
+      margin: 6px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: #fff;
+      color: #333;
+      font-size: 0.85rem;
+      text-decoration: none;
+    }
+
+    .again {
+      margin-top: 14px;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.6);
+      color: #fff;
+      border-radius: 999px;
+      padding: 9px 18px;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    footer { margin-top: 18px; text-align: center; font-size: 0.75rem; opacity: 0.7; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <h1>🎧 MoodTune AI</h1>
+    <p class="subtitle">Music that matches how you feel</p>
+
+    <div class="slider-box">
+      <label>How intense is your mood?</label>
+      <input type="range" id="intensity" min="1" max="5" value="3" />
+    </div>
+
+    <div class="moods" id="moods">
+      <button class="mood-btn" data-mood="happy">😊 Happy</button>
+      <button class="mood-btn" data-mood="sad">😢 Sad</button>
+      <button class="mood-btn" data-mood="chill">😌 Chill</button>
+      <button class="mood-btn" data-mood="angry">😡 Angry</button>
+      <button class="mood-btn" data-mood="romantic">❤️ Romantic</button>
+      <button class="mood-btn" data-mood="energetic">⚡ Energetic</button>
+    </div>
+
+    <div class="result" id="result">
+      <div class="song" id="song"></div>
+      <div class="artist" id="artist"></div>
+      <div class="links" id="links"></div>
+      <button class="again" onclick="resetApp()">Choose another mood</button>
+    </div>
+
+    <footer>AI-style logic • Spotify & YouTube ready</footer>
+  </div>
+
+  <script>
+    const themes = {
+      happy: ['#f6d365', '#fda085'],
+      sad: ['#2c3e50', '#4ca1af'],
+      chill: ['#2193b0', '#6dd5ed'],
+      angry: ['#cb2d3e', '#ef473a'],
+      romantic: ['#cc2b5e', '#753a88'],
+      energetic: ['#f7971e', '#ffd200']
+    };
+
+    const songs = {
+      happy: [
+        { t: 'Happy', a: 'Pharrell Williams' },
+        { t: 'Good Time', a: 'Owl City' }
+      ],
+      sad: [
+        { t: 'Fix You', a: 'Coldplay' },
+        { t: 'Someone Like You', a: 'Adele' }
+      ],
+      chill: [
+        { t: 'Sunset Lover', a: 'Petit Biscuit' },
+        { t: 'Location', a: 'Khalid' }
+      ],
+      angry: [
+        { t: 'Lose Yourself', a: 'Eminem' },
+        { t: 'Believer', a: 'Imagine Dragons' }
+      ],
+      romantic: [
+        { t: 'Perfect', a: 'Ed Sheeran' },
+        { t: 'All of Me', a: 'John Legend' }
+      ],
+      energetic: [
+        { t: "Can't Hold Us", a: 'Macklemore' },
+        { t: 'Stronger', a: 'Kanye West' }
+      ]
+    };
+
+    const moodButtons = document.querySelectorAll('.mood-btn');
+    const resultBox = document.getElementById('result');
+    const songEl = document.getElementById('song');
+    const artistEl = document.getElementById('artist');
+    const moodsBox = document.getElementById('moods');
+    const linksBox = document.getElementById('links');
+
+    moodButtons.forEach(btn => {
+      btn.onclick = () => {
+        const mood = btn.dataset.mood;
+        const intensity = document.getElementById('intensity').value;
+        const pick = songs[mood][intensity > 3 ? 1 : 0];
+
+        document.body.style.background = `linear-gradient(135deg, ${themes[mood][0]}, ${themes[mood][1]})`;
+
+        songEl.textContent = `"${pick.t}"`;
+        artistEl.textContent = `by ${pick.a}`;
+
+        const query = encodeURIComponent(pick.t + ' ' + pick.a);
+        linksBox.innerHTML = `
+          <a href="https://open.spotify.com/search/${query}" target="_blank">Spotify</a>
+          <a href="https://www.youtube.com/results?search_query=${query}" target="_blank">YouTube</a>
+        `;
+
+        moodsBox.style.display = 'none';
+        resultBox.style.display = 'block';
+      };
+    });
+
+    function resetApp() {
+      resultBox.style.display = 'none';
+      moodsBox.style.display = 'grid';
+    }
+  </script>
+</body>
+</html>
